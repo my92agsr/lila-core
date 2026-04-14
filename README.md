@@ -1,17 +1,17 @@
 # Lila: Persistent Operator
 
-Telegram-native persistent assistant with structured memory and proactive execution.
+Telegram-native executive assistant with structured memory and proactive execution.
 
-Lila is a Telegram-native persistent assistant built for continuity, not just replies. It combines structured memory, Voyage-powered semantic retrieval, `sqlite-vec` local vector search, FTS fallback, scheduled work, proactive delivery, and context compression so it can carry useful state across time without collapsing into raw chat history.
+Lila is a high-powered Telegram-native executive assistant built for continuity, not just replies. It combines structured memory, Voyage-powered semantic retrieval, `sqlite-vec` local vector search, FTS fallback, scheduled work, proactive delivery, and context compression so it can maintain context, follow through across time, and act more like an operator than a chat window.
 
 ## Core Idea
 
-Most assistants are stateless request handlers with a conversational shell. Lila takes a different approach:
+Most assistants are stateless request handlers with a conversational shell. Lila is designed to behave more like an executive assistant:
 
-- memory is a first-class system, not a transcript archive
-- context is distilled and reloaded across sessions
+- memory is a first-class operating system, not a transcript archive
+- context is distilled, ranked, and reloaded across sessions
 - scheduled and proactive workflows are built into the runtime
-- the assistant can operate over time, not just per message
+- the assistant can track, remind, summarize, and follow through over time
 
 ## Architecture
 
@@ -127,9 +127,9 @@ Typical configuration includes:
 
 ## Product Positioning
 
-Lila is not just an assistant wrapper. It is a persistent operator with memory as a product surface.
+Lila is a high-powered executive assistant, not a chatbot with tools bolted on.
 
-That means the value is not only better answers. The value is operational continuity:
+The memory architecture is what makes that believable. The value is not only better answers. The value is operational continuity:
 
 - what should still matter tomorrow
 - what should be surfaced again later
