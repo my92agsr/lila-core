@@ -28,6 +28,18 @@ Most assistants are stateless request handlers with a conversational shell. Lila
 - **Consolidation:** episodic memory is periodically distilled into reusable semantic memory
 - **Entity graph:** structured profiles for people, projects, places, and organizations
 
+### Intended Memory Architecture
+
+The intended retrieval stack is layered rather than monolithic:
+
+- **Primary retrieval:** Voyage semantic embeddings over chunked memory
+- **Index-time model:** `voyage-4-large`
+- **Query-time model:** `voyage-4`
+- **Reranking:** `rerank-2.5` on top candidates before prompt injection
+- **Fallback retrieval:** FTS5 for exact-match recovery
+- **Chunking:** per-speaker chunks capped around 300 tokens
+- **Write path:** embed new turns at write time, then backfill older history in migration passes
+
 ### Runtime
 
 - persistent Node.js service
@@ -89,6 +101,7 @@ Current implementation:
 - TypeScript
 - Claude Agent SDK
 - Voyage AI for embeddings and reranking
+- current repo code uses `voyage-3-large`, `voyage-3`, and `rerank-2`
 - Better-SQLite3
 - SQLite FTS5
 - sqlite-vec
