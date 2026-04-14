@@ -145,4 +145,4 @@ The memory architecture is what makes that believable, but the product surface i
 
 ## License
 
-Public reference implementation. Add the license you want before publishing.
+MIT. See [LICENSE](/Users/mattmacmini/assistants/CodexBridge/workspace/Lila-public/LICENSE).
