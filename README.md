@@ -1,8 +1,8 @@
 # Lila: Persistent Operator
 
-Persistent memory infrastructure for long-running personal AI assistants.
+Telegram-native memory infrastructure for long-running personal AI assistants.
 
-Lila is a chat-first operator built for assistants that need continuity, not just replies. It combines session persistence, structured memory, scheduled work, proactive delivery, and context compression so an assistant can carry useful state across time without collapsing into raw chat history.
+Lila is a Telegram-native persistent operator for assistants that need continuity, not just replies. It combines structured memory, Voyage-powered semantic retrieval, `sqlite-vec` local vector search, FTS fallback, scheduled work, proactive delivery, and context compression so an assistant can carry useful state across time without collapsing into raw chat history.
 
 ## Core Idea
 
@@ -18,7 +18,10 @@ Most assistants are stateless request handlers with a conversational shell. Lila
 ### Memory System
 
 - **Two-sector memory:** episodic turns and distilled semantic facts
-- **Semantic retrieval:** vector search with full-text fallback
+- **Embeddings:** Voyage AI powers index-time and query-time embeddings
+- **Vector retrieval:** `sqlite-vec` handles local semantic search against stored memory chunks
+- **Fallback retrieval:** SQLite FTS5 covers exact-match and keyword recovery
+- **Reranking:** Voyage reranking improves relevance before memory enters prompt context
 - **Salience scoring:** corrections, preferences, decisions, and explicit save signals are weighted higher
 - **Decay:** low-signal episodic context fades naturally
 - **Working memory:** a persistent markdown-backed state file for current priorities, people, projects, and open threads
@@ -28,9 +31,11 @@ Most assistants are stateless request handlers with a conversational shell. Lila
 ### Runtime
 
 - persistent Node.js service
+- Telegram-native chat interface and media handling
 - SQLite storage with FTS and vector support
 - scheduled tasks with cron or one-off delays
-- proactive outbound messaging
+- proactive outbound messaging and reminder execution
+- optional heartbeat jobs for background monitoring and summaries
 - session compression after long threads
 - optional voice and media handling
 
@@ -52,7 +57,9 @@ This public export removes personal deployment details and ships with generic de
 - no private dashboard or fleet configuration
 - no private runtime data or git history
 
-If you want to run Lila yourself, configure your own transport, inbox integrations, and working-memory location through environment and local setup.
+Telegram remains explicit because it is the real transport layer in this codebase, not an incidental implementation detail.
+
+If you want to run Lila yourself, configure your own bot token, inbox integrations, and working-memory location through environment and local setup.
 
 ## Repository Layout
 
@@ -81,9 +88,11 @@ Current implementation:
 - Node.js 20+
 - TypeScript
 - Claude Agent SDK
+- Voyage AI for embeddings and reranking
 - Better-SQLite3
+- SQLite FTS5
 - sqlite-vec
-- Grammy
+- Grammy for Telegram transport
 - OpenAI-compatible speech tooling
 - optional third-party search and embedding providers
 
@@ -107,7 +116,7 @@ Typical configuration includes:
 
 Lila is not just an assistant wrapper. It is a persistent operator with memory as a product surface.
 
-That means the value is not only better answers. The value is continuity:
+That means the value is not only better answers. The value is operational continuity:
 
 - what should still matter tomorrow
 - what should be surfaced again later
