@@ -37,9 +37,7 @@ export async function runDueTasks(): Promise<void> {
 
       // Only send result if the agent didn't already handle delivery
       // (agents with send_telegram_message in their prompt handle their own output)
-      const agentHandledDelivery = task.prompt.toLowerCase().includes('send_telegram_message') ||
-        task.prompt.toLowerCase().includes('send him') ||
-        task.prompt.toLowerCase().includes('send matt')
+      const agentHandledDelivery = task.prompt.toLowerCase().includes('send_telegram_message')
       if (!agentHandledDelivery && sender) {
         await sender(task.chat_id, result)
       }

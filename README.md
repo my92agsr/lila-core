@@ -145,4 +145,4 @@ The memory architecture is what makes that believable, but the product surface i
 
 ## License
 
-MIT. See [LICENSE](/Users/mattmacmini/assistants/CodexBridge/workspace/Lila-public/LICENSE).
+MIT. See `LICENSE`.
