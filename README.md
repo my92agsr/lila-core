@@ -28,18 +28,16 @@ Most assistants are stateless request handlers with a conversational shell. Lila
 - **Consolidation:** episodic memory is periodically distilled into reusable semantic memory
 - **Entity graph:** structured profiles for people, projects, places, and organizations
 
-### Intended Memory Upgrade Path
+### Live Retrieval Architecture
 
-The intended retrieval stack follows the upgrade spec directly:
+The memory retrieval stack is layered rather than monolithic:
 
-- **Layered upgrade:** existing SQLite and FTS5 structures stay intact while semantic retrieval is added alongside them
-- **Primary retrieval:** Voyage semantic embeddings become the default memory retrieval path
-- **Index-time model:** `voyage-4-large` for stored memory chunks
-- **Query-time model:** `voyage-4` for faster query embedding in the same vector space
-- **Reranking:** `rerank-2.5` narrows the top-20 candidates down to the top-5 before prompt injection
+- **Primary retrieval:** Voyage semantic embeddings drive memory recall over chunked history
+- **Embedding strategy:** separate index-time and query-time models share a compatible vector space
+- **Reranking:** a dedicated rerank pass narrows the top candidates before prompt injection
 - **Fallback retrieval:** FTS5 remains available for exact-match and keyword recovery
-- **Chunking:** per-speaker chunks capped around 300 tokens for finer recall precision
-- **Write path:** new turns are embedded at write time, while older history is backfilled in migration passes
+- **Chunking:** per-speaker chunks capped around 300 tokens improve recall precision
+- **Write path:** new turns are embedded at write time, with older history backfilled in migration passes
 - **Scoring:** retrieval combines semantic similarity with salience weighting before reranking
 
 ### Runtime
@@ -103,7 +101,7 @@ Current implementation:
 - TypeScript
 - Claude Agent SDK
 - Voyage AI for embeddings and reranking
-- current repo code uses `voyage-3-large`, `voyage-3`, and `rerank-2`
+- the public source currently pins `voyage-3-large`, `voyage-3`, and `rerank-2`
 - Better-SQLite3
 - SQLite FTS5
 - sqlite-vec
