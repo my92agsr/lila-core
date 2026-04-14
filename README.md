@@ -1,8 +1,8 @@
 # Lila: Persistent Operator
 
-Telegram-native executive assistant with structured memory and proactive execution.
+Telegram-native executive assistant with structured memory, adaptive model routing, and proactive execution.
 
-Lila is a high-powered Telegram-native executive assistant built for continuity, not just replies. It combines structured memory, Voyage-powered semantic retrieval, `sqlite-vec` local vector search, FTS fallback, scheduled work, proactive delivery, and context compression so it can maintain context, follow through across time, and act more like an operator than a chat window.
+Lila is a high-powered Telegram-native executive assistant built for continuity, not just replies. It combines structured memory, Voyage-powered semantic retrieval, `sqlite-vec` local vector search, FTS fallback, adaptive model routing, scheduled work, proactive delivery, and context compression so it can maintain context, follow through across time, and act more like an operator than a chat window.
 
 ## Core Idea
 
@@ -10,6 +10,7 @@ Most assistants are stateless request handlers with a conversational shell. Lila
 
 - memory is a first-class operating system, not a transcript archive
 - context is distilled, ranked, and reloaded across sessions
+- work is routed to different models based on complexity, cost, and task type
 - scheduled and proactive workflows are built into the runtime
 - the assistant can track, remind, summarize, and follow through over time
 
