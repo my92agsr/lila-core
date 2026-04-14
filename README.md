@@ -28,17 +28,19 @@ Most assistants are stateless request handlers with a conversational shell. Lila
 - **Consolidation:** episodic memory is periodically distilled into reusable semantic memory
 - **Entity graph:** structured profiles for people, projects, places, and organizations
 
-### Intended Memory Architecture
+### Intended Memory Upgrade Path
 
-The intended retrieval stack is layered rather than monolithic:
+The intended retrieval stack follows the upgrade spec directly:
 
-- **Primary retrieval:** Voyage semantic embeddings over chunked memory
-- **Index-time model:** `voyage-4-large`
-- **Query-time model:** `voyage-4`
-- **Reranking:** `rerank-2.5` on top candidates before prompt injection
-- **Fallback retrieval:** FTS5 for exact-match recovery
-- **Chunking:** per-speaker chunks capped around 300 tokens
-- **Write path:** embed new turns at write time, then backfill older history in migration passes
+- **Layered upgrade:** existing SQLite and FTS5 structures stay intact while semantic retrieval is added alongside them
+- **Primary retrieval:** Voyage semantic embeddings become the default memory retrieval path
+- **Index-time model:** `voyage-4-large` for stored memory chunks
+- **Query-time model:** `voyage-4` for faster query embedding in the same vector space
+- **Reranking:** `rerank-2.5` narrows the top-20 candidates down to the top-5 before prompt injection
+- **Fallback retrieval:** FTS5 remains available for exact-match and keyword recovery
+- **Chunking:** per-speaker chunks capped around 300 tokens for finer recall precision
+- **Write path:** new turns are embedded at write time, while older history is backfilled in migration passes
+- **Scoring:** retrieval combines semantic similarity with salience weighting before reranking
 
 ### Runtime
 
