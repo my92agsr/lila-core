@@ -4,11 +4,6 @@ Persistent memory infrastructure for long-running personal AI assistants.
 
 Lila is a chat-first operator built for assistants that need continuity, not just replies. It combines session persistence, structured memory, scheduled work, proactive delivery, and context compression so an assistant can carry useful state across time without collapsing into raw chat history.
 
-## GitHub Description
-
-Public repo description:
-`Persistent memory infrastructure for long-running personal AI assistants.`
-
 ## Core Idea
 
 Most assistants are stateless request handlers with a conversational shell. Lila takes a different approach:
@@ -63,7 +58,7 @@ If you want to run Lila yourself, configure your own transport, inbox integratio
 
 ```text
 src/
-  agent.ts          Claude Agent SDK integration
+  agent.ts          agent runtime integration
   bot.ts            transport formatting and chat loop
   compression.ts    long-session summarization and reset
   consolidation.ts  episodic to semantic memory distillation
@@ -80,6 +75,8 @@ scripts/
 ```
 
 ## Stack
+
+Current implementation:
 
 - Node.js 20+
 - TypeScript
