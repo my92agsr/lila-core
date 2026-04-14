@@ -1,0 +1,38 @@
+{
+  "name": "lila-persistent-operator",
+  "version": "1.0.0",
+  "description": "Persistent memory infrastructure for long-running personal AI assistants.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "setup": "tsx scripts/setup.ts",
+    "status": "tsx scripts/status.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.91",
+    "@anthropic-ai/sdk": "^0.82.0",
+    "better-sqlite3": "^11.0.0",
+    "cron-parser": "^5.0.0",
+    "grammy": "^1.30.0",
+    "openai": "^4.70.0",
+    "pino": "^9.0.0",
+    "pino-pretty": "^11.0.0",
+    "sqlite-vec": "^0.1.9",
+    "voyageai": "^0.2.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.0.0"
+  }
+}
