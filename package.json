@@ -1,7 +1,7 @@
 {
   "name": "lila-persistent-operator",
   "version": "1.0.0",
-  "description": "Telegram-native executive assistant with structured memory, adaptive model routing, semantic retrieval, scheduled tasks, and proactive execution.",
+  "description": "Telegram-native executive assistant with structured memory, adaptive model routing, inbox integrations, semantic retrieval, scheduled tasks, and proactive execution.",
   "type": "module",
   "scripts": {
     "build": "tsc",

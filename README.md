@@ -1,8 +1,8 @@
 # Lila: Persistent Operator
 
-Telegram-native executive assistant with structured memory, adaptive model routing, and proactive execution.
+Telegram-native executive assistant with structured memory, adaptive model routing, inbox integrations, and proactive execution.
 
-Lila is a high-powered Telegram-native executive assistant built for continuity, not just replies. It combines structured memory, Voyage-powered semantic retrieval, `sqlite-vec` local vector search, FTS fallback, adaptive model routing, scheduled work, proactive delivery, and context compression so it can maintain context, follow through across time, and act more like an operator than a chat window.
+Lila is a high-powered Telegram-native executive assistant built for continuity, not just replies. It combines structured memory, Voyage-powered semantic retrieval, `sqlite-vec` local vector search, FTS fallback, adaptive model routing, connected inbox and tool integrations, scheduled work, proactive delivery, and context compression so it can maintain context, follow through across time, and surface what changed before you ask.
 
 ## Core Idea
 
@@ -11,8 +11,10 @@ Most assistants are stateless request handlers with a conversational shell. Lila
 - memory is a first-class operating system, not a transcript archive
 - context is distilled, ranked, and reloaded across sessions
 - work is routed to different models based on complexity, cost, and task type
+- live inboxes and external systems can be checked directly through built-in tools
 - scheduled and proactive workflows are built into the runtime
-- the assistant can track, remind, summarize, and follow through over time
+- the assistant can track, remind, summarize, escalate, and follow through over time
+- decision-relevant changes can be surfaced proactively instead of waiting for a manual check
 
 ## Architecture
 
@@ -46,9 +48,12 @@ The memory retrieval stack is layered rather than monolithic:
 - persistent Node.js service
 - Telegram-native chat interface and media handling
 - SQLite storage with FTS and vector support
+- connected inbox integrations for primary, secondary, and business email workflows
 - scheduled tasks with cron or one-off delays
 - proactive outbound messaging and reminder execution
 - optional heartbeat jobs for background monitoring and summaries
+- heartbeat event logging to avoid re-surfacing the same issue repeatedly
+- tool-driven inbox triage, status checks, and outbound notifications
 - session compression after long threads
 - optional voice and media handling
 
@@ -130,11 +135,12 @@ Typical configuration includes:
 
 Lila is a high-powered executive assistant, not a chatbot with tools bolted on.
 
-The memory architecture is what makes that believable. The value is not only better answers. The value is operational continuity:
+The memory architecture is what makes that believable, but the product surface is broader than memory alone. Lila can watch connected systems, read inboxes, route work across models, and push updates when something materially changes. The value is not only better answers. The value is operational continuity:
 
 - what should still matter tomorrow
 - what should be surfaced again later
 - what belongs in durable memory versus ephemeral context
+- what changed in connected inboxes or monitored systems that should alter priorities
 - what the assistant should proactively act on without being re-prompted
 
 ## License
