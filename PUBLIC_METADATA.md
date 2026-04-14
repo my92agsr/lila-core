@@ -4,7 +4,7 @@ Name:
 `Lila: Persistent Operator`
 
 Tagline:
-`Telegram-native memory infrastructure for long-running personal AI assistants.`
+`Telegram-native persistent assistant with structured memory and proactive execution.`
 
 GitHub description:
-`Telegram-native persistent operator with structured memory, semantic retrieval, scheduled tasks, and proactive execution.`
+`Telegram-native persistent assistant with structured memory, semantic retrieval, scheduled tasks, and proactive execution.`

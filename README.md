@@ -1,8 +1,8 @@
 # Lila: Persistent Operator
 
-Telegram-native memory infrastructure for long-running personal AI assistants.
+Telegram-native persistent assistant with structured memory and proactive execution.
 
-Lila is a Telegram-native persistent operator for assistants that need continuity, not just replies. It combines structured memory, Voyage-powered semantic retrieval, `sqlite-vec` local vector search, FTS fallback, scheduled work, proactive delivery, and context compression so an assistant can carry useful state across time without collapsing into raw chat history.
+Lila is a Telegram-native persistent assistant built for continuity, not just replies. It combines structured memory, Voyage-powered semantic retrieval, `sqlite-vec` local vector search, FTS fallback, scheduled work, proactive delivery, and context compression so it can carry useful state across time without collapsing into raw chat history.
 
 ## Core Idea
 

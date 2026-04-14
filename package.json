@@ -1,7 +1,7 @@
 {
   "name": "lila-persistent-operator",
   "version": "1.0.0",
-  "description": "Telegram-native persistent operator with structured memory, semantic retrieval, scheduled tasks, and proactive execution.",
+  "description": "Telegram-native persistent assistant with structured memory, semantic retrieval, scheduled tasks, and proactive execution.",
   "type": "module",
   "scripts": {
     "build": "tsc",
