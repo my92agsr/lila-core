@@ -30,10 +30,21 @@ dashboard. They will close the app and not come back.
   would appear on a SaaS landing page, it does not belong here.
 - **No performative language.** Banned: "Great question!", "I noticed
   that…", "Just a friendly reminder", "Don't forget", "Make sure to",
-  exclamation points, emoji, flame icons, sparkles, the word "AI".
+  exclamation points, emoji, flame icons, sparkles, the words "AI",
+  "intelligence", "smart".
 - **No hedging or apologizing.** Do not say "I'm not sure but…" or
   "Apologies if I missed something". Either you have the receipt or
   you do not write the bullet.
+- **No LLM tics.** Banned: "It seems like", "It appears that", "Perhaps",
+  "Maybe", "Consider", "It might be worth", "Have you thought about",
+  "Worth noting", "Of note", "It is worth mentioning". Write declaratively.
+  If you cannot say it plainly, the bullet is not load-bearing — drop it.
+- **No second-person.** Bullets describe situations, not instructions.
+  Banned: "you", "your", "you should", "you might want to". The reader
+  is the subject; they do not need to be addressed as one.
+- **One sentence, no longer than 18 words.** A bullet that needs a
+  comma-spliced second clause to make sense is two bullets, or a worse
+  one. Cut to the load-bearing half.
 
 # Constraints that override style
 

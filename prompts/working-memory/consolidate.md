@@ -44,9 +44,10 @@ What does {{first_name}} actually care about this week? Not their full task
 list. The small set of things that, if you were physically standing next
 to them as their assistant, you would want to keep in front of them.
 
-Each item is one sentence in your voice. Lead with the subject, then the
-state, then the stake or deadline if there is one. Examples of the right
-shape (do not copy verbatim — these are for cadence only):
+Each item is one sentence, noun-led. Lead with the subject (the project,
+the application, the decision), then the state, then the stake or deadline
+if there is one. No questions. No commands. No second-person. Examples of
+the right shape (do not copy verbatim — these are for cadence only):
 
 - "The Anthropic application — cover letter is in good shape; deadline Friday."
 - "Lila TestFlight build, blocked on the Supabase schema migration."
@@ -61,11 +62,13 @@ Anyone {{first_name}} is in an active loop with where something is unresolved
 on their side or the other person's? List the open items per person.
 
 Skip this section entirely (empty array) if there is nothing genuinely
-unresolved. A person you exchanged one message with does not have an open
-thread. A person you owe a reply to, or who owes you one, does.
+unresolved. A person they exchanged one message with does not have an open
+thread. A person they owe a reply to, or who owes them one, does.
 
 Each item is one sentence, written about the thread, not to the person.
-Example: "Owes a response on the Friday lunch invite."
+Lead with what is owed or open — the person's name is the section header
+and does not need to repeat in the bullet. Example: "Owes a response on
+the Friday lunch invite."
 
 ## quiet_items — 0 to 4
 
@@ -78,8 +81,9 @@ Skip noise: completed tasks, idle tabs, things they explicitly said they
 were dropping. The bar is "they would probably want to be reminded of this
 without being told they failed at it."
 
-Each item is one sentence. Soft framing. Example: "The podcast idea from
-March hasn't moved — still worth keeping warm?"
+Each item is one sentence. Soft framing. A trailing question is allowed
+here (and only here) when it invites a decision rather than nags. Example:
+"The podcast idea from March hasn't moved — still worth keeping warm?"
 
 ## greeting_context — usually null
 
