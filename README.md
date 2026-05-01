@@ -73,17 +73,20 @@ run on behalf of any user. Never ship it to a client. Never commit it.
 
 ## Automatic consolidation
 
-The repo runs `wm:consolidate:all` nightly via GitHub Actions (see
-[`.github/workflows/consolidate.yml`](./.github/workflows/consolidate.yml)).
-It walks every user with activity in the last 7 days and writes them a
-fresh `working_memory` row. Manual `workflow_dispatch` is wired so it can
-be kicked off on demand.
+`lila-core` is a pure library; it doesn't run a scheduled job from this
+repo. The deployment that powers `lila.surf` schedules `wm:consolidate:all`
+nightly from a private repo — secrets and operational state stay there
+so this repo can be vendored into other deployments without inheriting
+anyone's credentials.
 
-Required repository secrets:
+To run it on your own schedule, point any cron-capable runner
+(GitHub Actions in your own repo, Railway, Fly cron, Supabase scheduled
+edge functions, a `launchd` plist on a Mac) at:
 
-- `ANTHROPIC_API_KEY`
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+```bash
+ANTHROPIC_API_KEY=… SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… \
+  npm run wm:consolidate:all
+```
 
 ## Stack
 

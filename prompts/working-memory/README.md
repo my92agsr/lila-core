@@ -96,7 +96,6 @@ ANTHROPIC_API_KEY=… SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… \
 `--show-input` prints what was loaded from Supabase before running. Use
 both together to debug "why does it think X" without burning rows.
 
-The nightly workflow lives at
-[`.github/workflows/consolidate.yml`](../../.github/workflows/consolidate.yml)
-and runs `wm:consolidate:all` against repository secrets
-`ANTHROPIC_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+The nightly schedule that drives `lila.surf` runs `wm:consolidate:all`
+from a private deployment repo, not from here. See the README at the
+repo root for why secrets live outside the open-source library.
