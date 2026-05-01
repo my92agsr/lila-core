@@ -4,10 +4,10 @@ Name:
 `Lila Core`
 
 Tagline:
-`A persistent operator runtime. Memory, model routing, scheduling, proactive execution. Open source.`
+`Working-memory consolidation engine for Lila. Open source.`
 
 GitHub description:
-`Open-source persistent operator runtime — structured memory, model routing, semantic retrieval, scheduling, proactive execution. The engine behind Lila (lila.surf).`
+`Open-source working-memory consolidation engine for Lila (lila.surf). Reads recent activity from Supabase, distills it into a structured working_memory record with Claude, writes it back.`
 
 Homepage:
 `https://lila.sh`

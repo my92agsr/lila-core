@@ -1,159 +1,122 @@
 # Lila Core
 
-A persistent operator runtime. Memory, model routing, scheduling, proactive
-execution. Open source.
+Working-memory consolidation engine for **Lila** — the iOS app at
+[lila.surf](https://lila.surf). Reads recent activity for a user from
+Supabase, distills it into a structured `working_memory` record using
+Claude, writes it back. The iOS client renders that record on its home
+screen. Open source.
 
-> **`lila.sh`** is this runtime. **`lila.surf`** is Lila — the consumer iOS
-> app built on top of it. This repo is the engine; the App Store product is
-> the reference deployment.
+> **`lila.sh`** is this engine. **`lila.surf`** is the consumer iOS app
+> built on top of it. This repo is the runtime; the App Store product is
+> the surface.
 
-Most assistants are stateless request handlers with a conversational shell.
-Lila Core is designed to behave like a real assistant: it carries context
-across days and weeks, distills what matters, routes work across models,
-watches connected systems, and pushes updates when something materially
-changes. The transport is configurable — today's reference loop is
-Telegram; the iOS client at `lila.surf` is a richer surface on the same
-core.
+## What this does
 
-## What's in here
+Once a day (or on demand), for each active user:
 
-- **Two-sector memory.** Episodic turns plus distilled semantic facts.
-  Voyage-powered embeddings, `sqlite-vec` for local vector search, FTS5
-  fallback, salience-weighted retrieval, dedicated rerank pass.
-- **Working memory.** A persistent model of the user's life — current
-  priorities, active people, open threads — refreshed by a nightly
-  consolidation pass. The structured form of this drives the iOS home
-  screen; see [`prompts/working-memory/`](./prompts/working-memory).
-- **Consolidation.** Episodic memory is periodically distilled into reusable
-  semantic memory; entities (people, projects, places, organizations) are
-  extracted into a structured graph.
-- **Model routing.** Lightweight models for trivial replies, default models
-  for normal turns, stronger models for coding and multi-step reasoning.
-  Cost and latency tracked per turn.
-- **Scheduling and proactivity.** Cron and one-off delays, heartbeat jobs
-  for background monitoring, deduplicated proactive outbound messaging,
-  inbox triage and outbound notification through MCP-style tools.
-- **Compression.** Long sessions get summarized and reset without losing
-  durable facts.
+1. Reads recent rows from `public.{captures,tasks,reflections,messages,events}`.
+2. Reads the previous `public.working_memory` row.
+3. Renders a consolidation prompt and asks Claude to produce a structured
+   summary — focus items, people threads, quiet items, an optional greeting
+   context — each bullet carrying receipts back to the underlying records.
+4. Validates the JSON against [`prompts/working-memory/schema.json`](./prompts/working-memory/schema.json).
+5. Writes a new `working_memory` row.
+6. The iOS app renders the latest row on next pull-to-refresh.
 
-## Architecture at a glance
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Transport (Telegram today, iOS / others next)              │
-└────────────────────────────┬────────────────────────────────┘
-                             │
-┌────────────────────────────▼────────────────────────────────┐
-│  Agent runtime  (Claude Agent SDK, model routing)           │
-└────────────────────────────┬────────────────────────────────┘
-                             │
-        ┌────────────────────┼────────────────────┐
-        │                    │                    │
-┌───────▼────────┐  ┌────────▼────────┐  ┌────────▼────────┐
-│  Memory        │  │  Tools          │  │  Scheduler      │
-│  ─ episodic    │  │  ─ inbox        │  │  ─ cron         │
-│  ─ semantic    │  │  ─ search       │  │  ─ heartbeat    │
-│  ─ working     │  │  ─ outbound     │  │  ─ proactive    │
-│  ─ entities    │  │                 │  │                 │
-└───────┬────────┘  └─────────────────┘  └─────────────────┘
-        │
-┌───────▼────────────────────────────────────────────────────┐
-│  Storage  (SQLite + FTS5 + sqlite-vec, Voyage embeddings)  │
-└────────────────────────────────────────────────────────────┘
-```
-
-## Working memory and the iOS surface
-
-The iOS client at `lila.surf` reads from a structured working-memory record
-that this runtime produces. The contract — what the consolidation prompt
-emits and what the client renders — lives in
-[`prompts/working-memory/`](./prompts/working-memory):
-
-- `system.md` — Lila's voice (stable).
-- `consolidate.md` — the structure prompt with input placeholders.
-- `schema.json` — JSON Schema for the output.
-- `sample-input.json` — synthetic week of activity for prompt iteration.
-
-Iterate the voice without setting up the rest of the system:
-
-```bash
-ANTHROPIC_API_KEY=... npm run wm:consolidate
-```
-
-The CLI renders the prompts against a sample input, runs them through
-Claude with prompt caching on the system prompt, validates the JSON output
-against `schema.json`, and prints both the raw output and a text rendering
-of how the home screen would read.
-
-The iOS client itself is closed-source (lives in a separate repo for App
-Store reasons). What's open here is the runtime that produces the data
-the client renders.
+The voice rules (sparse is honest, no corporate language, time-bound
+items first, every bullet has a receipt) live in
+[`prompts/working-memory/system.md`](./prompts/working-memory/system.md).
+The structure rules live in
+[`prompts/working-memory/consolidate.md`](./prompts/working-memory/consolidate.md).
 
 ## Repository layout
 
 ```text
-src/
-  agent.ts          agent runtime integration
-  bot.ts            transport formatting and chat loop
-  compression.ts    long-session summarization and reset
-  consolidation.ts  episodic to semantic memory distillation
-  db.ts             SQLite schema and queries
-  heartbeat.ts      optional proactive task seeding
-  memory.ts         retrieval, salience, working memory
-  scheduler.ts      cron and delayed task execution
-  tools.ts          MCP tools exposed to the assistant
-  voice.ts          speech input/output helpers
+prompts/working-memory/
+  system.md          Voice. Stable. Rarely changes.
+  consolidate.md     Structure. Mustache-style placeholders. Iterate freely.
+  schema.json        JSON Schema for the output. Source of truth.
+  sample-input.json  Synthetic week of activity for prompt iteration.
+  README.md          How to iterate the voice without touching Supabase.
 
-prompts/
-  working-memory/   system + structure prompts, schema, samples
+src/working-memory/
+  types.ts           ConsolidationInput / ConsolidationOutput.
+  consolidation.ts   Render templates, call Claude, validate output.
+  supabase.ts        Read source tables, write working_memory rows.
 
 scripts/
-  setup.ts                       interactive local setup
-  status.ts                      runtime status checks
-  working-memory-consolidate.ts  prompt iteration CLI
+  working-memory-consolidate.ts            Iterate against sample-input.json.
+  working-memory-consolidate-supabase.ts   Run for one user against Supabase.
+  working-memory-consolidate-all.ts        Run for every active user.
+
+.github/workflows/
+  consolidate.yml    Nightly cron + manual dispatch.
 ```
+
+## Run it locally
+
+```bash
+# Iterate prompt voice (no DB):
+ANTHROPIC_API_KEY=… npm run wm:consolidate
+
+# Run for one user (real Supabase data):
+ANTHROPIC_API_KEY=… SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… \
+  npm run wm:consolidate:supabase -- --user you@example.com
+
+# Run for everyone with recent activity:
+ANTHROPIC_API_KEY=… SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… \
+  npm run wm:consolidate:all
+```
+
+The **service-role key** bypasses Row Level Security so the script can
+run on behalf of any user. Never ship it to a client. Never commit it.
+
+## Automatic consolidation
+
+The repo runs `wm:consolidate:all` nightly via GitHub Actions (see
+[`.github/workflows/consolidate.yml`](./.github/workflows/consolidate.yml)).
+It walks every user with activity in the last 7 days and writes them a
+fresh `working_memory` row. Manual `workflow_dispatch` is wired so it can
+be kicked off on demand.
+
+Required repository secrets:
+
+- `ANTHROPIC_API_KEY`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
 
 ## Stack
 
 - Node.js 20+, TypeScript
-- Claude Agent SDK
-- Voyage AI for embeddings and reranking (`voyage-3-large`, `voyage-3`,
-  `rerank-2`)
-- Better-SQLite3 + FTS5 + sqlite-vec
-- Grammy for Telegram transport
-- OpenAI-compatible speech tooling (optional)
+- `@anthropic-ai/sdk` — Claude calls with prompt caching on the system prompt
+- `@supabase/supabase-js` — read/write Supabase from server-side scripts
 
-## Setup
+That's it. No agent runtime, no transports, no embeddings — those lived in
+an earlier Telegram-bot iteration of this repo and have been removed. If
+you need them back for another transport, the git history before the
+"Drop Telegram bot, focus on consolidation engine" commit is the place to
+look.
 
-```bash
-npm install
-cp .env.example .env
-npm run build
-npm run start
-```
+## Output contract
 
-Typical configuration:
+One JSON object per consolidation pass, written into
+`public.working_memory`. Fields:
 
-- chat transport credentials
-- model API keys
-- optional embedding provider key
-- optional speech provider key
+| Field              | Cardinality        | Notes                                     |
+| ------------------ | ------------------ | ----------------------------------------- |
+| `greeting_context` | optional, nullable | Short phrase. Often null.                 |
+| `focus_items`      | 0–4                | The week's actually-load-bearing things.  |
+| `people_threads`   | 0–2 people         | Each with 1–3 unresolved items.           |
+| `quiet_items`      | 0–4                | Captured but stalled ≥10 days, not dead.  |
 
-## Public-safe defaults
+Every bullet carries `source_ids: [{table, id}, …]` — the receipts the
+iOS tap-to-expand sheet resolves against the source rows.
 
-This is the public export. It does not contain personal deployment
-details — no inbox addresses, no machine paths, no private dashboard
-configuration, no private runtime data. To run Lila Core yourself,
-configure your own bot token, inbox integrations, and working-memory
-location through environment and local setup.
+## Sparse is honest
 
-## Naming and history
-
-This repo was previously distributed under the codename
-`Lila--Persistent-Operator`. The runtime is now called **Lila Core**; the
-codename is retired. The product built on top of Lila Core is **Lila**, an
-iOS app at [`lila.surf`](https://lila.surf). The runtime itself lives at
-[`lila.sh`](https://lila.sh).
+The single most important rule. If the user had a quiet week, the JSON
+should reflect that — empty arrays, not invented bullets. A half-empty
+home screen is more credible than four padded items.
 
 ## License
 

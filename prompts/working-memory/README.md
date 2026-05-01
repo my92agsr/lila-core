@@ -66,31 +66,37 @@ is more credible than four padded items.
 
 ## Where this gets called from
 
-Two scripts share the same consolidation logic in
+Three scripts share the same consolidation logic in
 `src/working-memory/consolidation.ts`:
 
 - **`scripts/working-memory-consolidate.ts`** — runs against an input JSON
   file (default `sample-input.json`). For prompt iteration; does not touch
   Supabase.
 - **`scripts/working-memory-consolidate-supabase.ts`** — runs end-to-end
-  against a real user. Reads recent `captures` / `tasks` / `reflections` /
-  `messages` / `events` rows + the previous `working_memory` row from
-  Supabase, runs the prompt, and writes a new `working_memory` row that
-  the iOS client picks up.
+  against one user. Reads recent rows from the source tables + the previous
+  `working_memory` row, runs the prompt, writes a new `working_memory` row.
+- **`scripts/working-memory-consolidate-all.ts`** — same, but for every
+  user with activity in the lookback window. Driven by the nightly GitHub
+  Actions workflow; runnable by hand for backfills.
 
 ```bash
-# Real consolidation against Supabase data:
-ANTHROPIC_API_KEY=… \
-SUPABASE_URL=https://YOUR_REF.supabase.co \
-SUPABASE_SERVICE_ROLE_KEY=… \
-  npm run wm:consolidate:supabase -- --user you@example.com --first-name Matt
+# Iterate prompt voice against synthetic data:
+ANTHROPIC_API_KEY=… npm run wm:consolidate
+
+# One-user run (real Supabase data):
+ANTHROPIC_API_KEY=… SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… \
+  npm run wm:consolidate:supabase -- --user you@example.com
+
+# All active users:
+ANTHROPIC_API_KEY=… SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… \
+  npm run wm:consolidate:all
 ```
 
 `--dry-run` runs the prompt and prints the result without writing the row.
 `--show-input` prints what was loaded from Supabase before running. Use
 both together to debug "why does it think X" without burning rows.
 
-Future: a Railway endpoint `POST /memory/consolidate` triggered by nightly
-cron and the on-demand refresh button on iOS. The endpoint will be a thin
-wrapper around `runConsolidation()` and `writeWorkingMemory()` in
-`src/working-memory/`; the script above is the same path, hand-cranked.
+The nightly workflow lives at
+[`.github/workflows/consolidate.yml`](../../.github/workflows/consolidate.yml)
+and runs `wm:consolidate:all` against repository secrets
+`ANTHROPIC_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
