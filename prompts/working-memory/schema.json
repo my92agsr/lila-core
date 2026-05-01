@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lila.sh/schemas/working-memory.json",
+  "title": "WorkingMemoryConsolidation",
+  "description": "Output of one nightly working-memory consolidation pass. Persisted as a row in the Supabase working_memory table and rendered by the iOS home screen.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["focus_items", "people_threads", "quiet_items"],
+  "properties": {
+    "greeting_context": {
+      "description": "Optional short phrase shown above the greeting when something significant just shifted in the user's life. Usually null.",
+      "type": ["string", "null"],
+      "maxLength": 80
+    },
+    "focus_items": {
+      "description": "0 to 4 things the user actually cares about this week. Sorted descending by salience.",
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 4,
+      "items": { "$ref": "#/$defs/focusItem" }
+    },
+    "people_threads": {
+      "description": "0 to 2 people the user has unresolved threads with.",
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 2,
+      "items": { "$ref": "#/$defs/personThread" }
+    },
+    "quiet_items": {
+      "description": "0 to 4 things the user captured or committed to that have stalled but do not seem dead.",
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 4,
+      "items": { "$ref": "#/$defs/quietItem" }
+    }
+  },
+  "$defs": {
+    "sourceId": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["table", "id"],
+      "properties": {
+        "table": {
+          "type": "string",
+          "enum": ["captures", "tasks", "reflections", "notes", "messages", "events"]
+        },
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "focusItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "source_ids", "salience"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "source_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/sourceId" }
+        },
+        "salience": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "personThread": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["person", "items"],
+      "properties": {
+        "person": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["text", "source_ids"],
+            "properties": {
+              "text": { "type": "string", "minLength": 1, "maxLength": 200 },
+              "source_ids": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "$ref": "#/$defs/sourceId" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "quietItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "source_ids", "last_active_at"],
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "source_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/sourceId" }
+        },
+        "last_active_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}
