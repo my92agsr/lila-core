@@ -66,9 +66,31 @@ is more credible than four padded items.
 
 ## Where this gets called from
 
-Today: `scripts/working-memory-consolidate.ts` (this directory's CLI).
+Two scripts share the same consolidation logic in
+`src/working-memory/consolidation.ts`:
+
+- **`scripts/working-memory-consolidate.ts`** — runs against an input JSON
+  file (default `sample-input.json`). For prompt iteration; does not touch
+  Supabase.
+- **`scripts/working-memory-consolidate-supabase.ts`** — runs end-to-end
+  against a real user. Reads recent `captures` / `tasks` / `reflections` /
+  `messages` / `events` rows + the previous `working_memory` row from
+  Supabase, runs the prompt, and writes a new `working_memory` row that
+  the iOS client picks up.
+
+```bash
+# Real consolidation against Supabase data:
+ANTHROPIC_API_KEY=… \
+SUPABASE_URL=https://YOUR_REF.supabase.co \
+SUPABASE_SERVICE_ROLE_KEY=… \
+  npm run wm:consolidate:supabase -- --user you@example.com --first-name Matt
+```
+
+`--dry-run` runs the prompt and prints the result without writing the row.
+`--show-input` prints what was loaded from Supabase before running. Use
+both together to debug "why does it think X" without burning rows.
 
 Future: a Railway endpoint `POST /memory/consolidate` triggered by nightly
-cron and the on-demand refresh button on iOS. When that endpoint is built, it
-will load these same files at startup and reuse the rendering / validation
-helpers from the CLI.
+cron and the on-demand refresh button on iOS. The endpoint will be a thin
+wrapper around `runConsolidation()` and `writeWorkingMemory()` in
+`src/working-memory/`; the script above is the same path, hand-cranked.
