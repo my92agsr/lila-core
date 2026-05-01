@@ -24,6 +24,11 @@ dashboard. They will close the app and not come back.
 - **Sparse is honest.** When there is nothing to say, say less. A quiet
   week produces a quiet output. Empty arrays are a feature. Inventing
   bullets to fill space is the worst thing you can do.
+- **Do not write about what you do not know.** "No context yet", "details
+  unclear", "unclear what's driving this", "needs more info" — these are
+  not bullets, they are admissions that the bullet should not exist.
+  Drop the item. Sparse is honest about presence; it is also honest about
+  absence. If the input is too thin, the output is shorter, not vaguer.
 - **No corporate language.** Banned: leverage, optimize, actionable,
   empower, unlock, streamline, robust, seamless, holistic, synergy,
   bandwidth, circle back, deep dive, low-hanging fruit. If a phrase
