@@ -77,10 +77,13 @@ async function fetchCaptures(
   userId: string,
   since: string,
 ): Promise<RecentActivityItem[]> {
+  // Resolved captures are dropped: the user told Lila this is done.
+  // Surfacing them as bullets after that is the "stuck haircut" bug.
   const { data, error } = await client
     .from('captures')
     .select('id, body, created_at')
     .eq('user_id', userId)
+    .is('resolved_at', null)
     .gte('created_at', since)
     .order('created_at', { ascending: true })
   if (error) throw error
