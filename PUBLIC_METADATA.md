@@ -1,10 +1,16 @@
 # Public Metadata
 
 Name:
-`Lila: Persistent Operator`
+`Lila Core`
 
 Tagline:
-`Telegram-native executive assistant with structured memory, adaptive model routing, inbox integrations, and proactive execution.`
+`A persistent operator runtime. Memory, model routing, scheduling, proactive execution. Open source.`
 
 GitHub description:
-`Telegram-native executive assistant with structured memory, adaptive model routing, inbox integrations, semantic retrieval, scheduled tasks, and proactive execution.`
+`Open-source persistent operator runtime — structured memory, model routing, semantic retrieval, scheduling, proactive execution. The engine behind Lila (lila.surf).`
+
+Homepage:
+`https://lila.sh`
+
+Reference deployment:
+`https://lila.surf` (Lila iOS app)

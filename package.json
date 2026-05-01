@@ -1,7 +1,7 @@
 {
-  "name": "lila-persistent-operator",
+  "name": "lila-core",
   "version": "1.0.0",
-  "description": "Telegram-native executive assistant with structured memory, adaptive model routing, inbox integrations, semantic retrieval, scheduled tasks, and proactive execution.",
+  "description": "A persistent operator runtime. Memory, model routing, scheduling, proactive execution. Open source.",
   "license": "MIT",
   "type": "module",
   "scripts": {

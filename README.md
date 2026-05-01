@@ -1,85 +1,95 @@
-# Lila: Persistent Operator
+# Lila Core
 
-Telegram-native executive assistant with structured memory, adaptive model routing, inbox integrations, and proactive execution.
+A persistent operator runtime. Memory, model routing, scheduling, proactive
+execution. Open source.
 
-Lila is a high-powered Telegram-native executive assistant built for continuity, not just replies. It combines structured memory, Voyage-powered semantic retrieval, `sqlite-vec` local vector search, FTS fallback, adaptive model routing, connected inbox and tool integrations, scheduled work, proactive delivery, and context compression so it can maintain context, follow through across time, and surface what changed before you ask.
+> **`lila.sh`** is this runtime. **`lila.surf`** is Lila — the consumer iOS
+> app built on top of it. This repo is the engine; the App Store product is
+> the reference deployment.
 
-## Core Idea
+Most assistants are stateless request handlers with a conversational shell.
+Lila Core is designed to behave like a real assistant: it carries context
+across days and weeks, distills what matters, routes work across models,
+watches connected systems, and pushes updates when something materially
+changes. The transport is configurable — today's reference loop is
+Telegram; the iOS client at `lila.surf` is a richer surface on the same
+core.
 
-Most assistants are stateless request handlers with a conversational shell. Lila is designed to behave more like an executive assistant:
+## What's in here
 
-- memory is a first-class operating system, not a transcript archive
-- context is distilled, ranked, and reloaded across sessions
-- work is routed to different models based on complexity, cost, and task type
-- live inboxes and external systems can be checked directly through built-in tools
-- scheduled and proactive workflows are built into the runtime
-- the assistant can track, remind, summarize, escalate, and follow through over time
-- decision-relevant changes can be surfaced proactively instead of waiting for a manual check
+- **Two-sector memory.** Episodic turns plus distilled semantic facts.
+  Voyage-powered embeddings, `sqlite-vec` for local vector search, FTS5
+  fallback, salience-weighted retrieval, dedicated rerank pass.
+- **Working memory.** A persistent model of the user's life — current
+  priorities, active people, open threads — refreshed by a nightly
+  consolidation pass. The structured form of this drives the iOS home
+  screen; see [`prompts/working-memory/`](./prompts/working-memory).
+- **Consolidation.** Episodic memory is periodically distilled into reusable
+  semantic memory; entities (people, projects, places, organizations) are
+  extracted into a structured graph.
+- **Model routing.** Lightweight models for trivial replies, default models
+  for normal turns, stronger models for coding and multi-step reasoning.
+  Cost and latency tracked per turn.
+- **Scheduling and proactivity.** Cron and one-off delays, heartbeat jobs
+  for background monitoring, deduplicated proactive outbound messaging,
+  inbox triage and outbound notification through MCP-style tools.
+- **Compression.** Long sessions get summarized and reset without losing
+  durable facts.
 
-## Architecture
+## Architecture at a glance
 
-### Memory System
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Transport (Telegram today, iOS / others next)              │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────────┐
+│  Agent runtime  (Claude Agent SDK, model routing)           │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+        ┌────────────────────┼────────────────────┐
+        │                    │                    │
+┌───────▼────────┐  ┌────────▼────────┐  ┌────────▼────────┐
+│  Memory        │  │  Tools          │  │  Scheduler      │
+│  ─ episodic    │  │  ─ inbox        │  │  ─ cron         │
+│  ─ semantic    │  │  ─ search       │  │  ─ heartbeat    │
+│  ─ working     │  │  ─ outbound     │  │  ─ proactive    │
+│  ─ entities    │  │                 │  │                 │
+└───────┬────────┘  └─────────────────┘  └─────────────────┘
+        │
+┌───────▼────────────────────────────────────────────────────┐
+│  Storage  (SQLite + FTS5 + sqlite-vec, Voyage embeddings)  │
+└────────────────────────────────────────────────────────────┘
+```
 
-- **Two-sector memory:** episodic turns and distilled semantic facts
-- **Embeddings:** Voyage AI powers index-time and query-time embeddings
-- **Vector retrieval:** `sqlite-vec` handles local semantic search against stored memory chunks
-- **Fallback retrieval:** SQLite FTS5 covers exact-match and keyword recovery
-- **Reranking:** Voyage reranking improves relevance before memory enters prompt context
-- **Salience scoring:** corrections, preferences, decisions, and explicit save signals are weighted higher
-- **Decay:** low-signal episodic context fades naturally
-- **Working memory:** a persistent markdown-backed state file for current priorities, people, projects, and open threads
-- **Consolidation:** episodic memory is periodically distilled into reusable semantic memory
-- **Entity graph:** structured profiles for people, projects, places, and organizations
+## Working memory and the iOS surface
 
-### Live Retrieval Architecture
+The iOS client at `lila.surf` reads from a structured working-memory record
+that this runtime produces. The contract — what the consolidation prompt
+emits and what the client renders — lives in
+[`prompts/working-memory/`](./prompts/working-memory):
 
-The memory retrieval stack is layered rather than monolithic:
+- `system.md` — Lila's voice (stable).
+- `consolidate.md` — the structure prompt with input placeholders.
+- `schema.json` — JSON Schema for the output.
+- `sample-input.json` — synthetic week of activity for prompt iteration.
 
-- **Primary retrieval:** Voyage semantic embeddings drive memory recall over chunked history
-- **Embedding strategy:** separate index-time and query-time models share a compatible vector space
-- **Reranking:** a dedicated rerank pass narrows the top candidates before prompt injection
-- **Fallback retrieval:** FTS5 remains available for exact-match and keyword recovery
-- **Chunking:** per-speaker chunks capped around 300 tokens improve recall precision
-- **Write path:** new turns are embedded at write time, with older history backfilled in migration passes
-- **Scoring:** retrieval combines semantic similarity with salience weighting before reranking
+Iterate the voice without setting up the rest of the system:
 
-### Runtime
+```bash
+ANTHROPIC_API_KEY=... npm run wm:consolidate
+```
 
-- persistent Node.js service
-- Telegram-native chat interface and media handling
-- SQLite storage with FTS and vector support
-- connected inbox integrations for primary, secondary, and business email workflows
-- scheduled tasks with cron or one-off delays
-- proactive outbound messaging and reminder execution
-- optional heartbeat jobs for background monitoring and summaries
-- heartbeat event logging to avoid re-surfacing the same issue repeatedly
-- tool-driven inbox triage, status checks, and outbound notifications
-- session compression after long threads
-- optional voice and media handling
+The CLI renders the prompts against a sample input, runs them through
+Claude with prompt caching on the system prompt, validates the JSON output
+against `schema.json`, and prints both the raw output and a text rendering
+of how the home screen would read.
 
-### Model Routing
+The iOS client itself is closed-source (lives in a separate repo for App
+Store reasons). What's open here is the runtime that produces the data
+the client renders.
 
-Messages can be routed by task complexity:
-
-- lightweight models for greetings and trivial queries
-- default models for normal conversation and tool use
-- stronger models for coding, architecture, and multi-step reasoning
-
-## Public-Safe Defaults
-
-This public export removes personal deployment details and ships with generic defaults:
-
-- no personal inbox addresses
-- no user-specific heartbeat prompts
-- no local machine paths
-- no private dashboard or fleet configuration
-- no private runtime data or git history
-
-Telegram remains explicit because it is the real transport layer in this codebase, not an incidental implementation detail.
-
-If you want to run Lila yourself, configure your own bot token, inbox integrations, and working-memory location through environment and local setup.
-
-## Repository Layout
+## Repository layout
 
 ```text
 src/
@@ -94,26 +104,24 @@ src/
   tools.ts          MCP tools exposed to the assistant
   voice.ts          speech input/output helpers
 
+prompts/
+  working-memory/   system + structure prompts, schema, samples
+
 scripts/
-  setup.ts          interactive local setup
-  status.ts         runtime status checks
+  setup.ts                       interactive local setup
+  status.ts                      runtime status checks
+  working-memory-consolidate.ts  prompt iteration CLI
 ```
 
 ## Stack
 
-Current implementation:
-
-- Node.js 20+
-- TypeScript
+- Node.js 20+, TypeScript
 - Claude Agent SDK
-- Voyage AI for embeddings and reranking
-- the public source currently pins `voyage-3-large`, `voyage-3`, and `rerank-2`
-- Better-SQLite3
-- SQLite FTS5
-- sqlite-vec
+- Voyage AI for embeddings and reranking (`voyage-3-large`, `voyage-3`,
+  `rerank-2`)
+- Better-SQLite3 + FTS5 + sqlite-vec
 - Grammy for Telegram transport
-- OpenAI-compatible speech tooling
-- optional third-party search and embedding providers
+- OpenAI-compatible speech tooling (optional)
 
 ## Setup
 
@@ -124,25 +132,29 @@ npm run build
 npm run start
 ```
 
-Typical configuration includes:
+Typical configuration:
 
 - chat transport credentials
 - model API keys
 - optional embedding provider key
 - optional speech provider key
 
-## Product Positioning
+## Public-safe defaults
 
-Lila is a high-powered executive assistant, not a chatbot with tools bolted on.
+This is the public export. It does not contain personal deployment
+details — no inbox addresses, no machine paths, no private dashboard
+configuration, no private runtime data. To run Lila Core yourself,
+configure your own bot token, inbox integrations, and working-memory
+location through environment and local setup.
 
-The memory architecture is what makes that believable, but the product surface is broader than memory alone. Lila can watch connected systems, read inboxes, route work across models, and push updates when something materially changes. The value is not only better answers. The value is operational continuity:
+## Naming and history
 
-- what should still matter tomorrow
-- what should be surfaced again later
-- what belongs in durable memory versus ephemeral context
-- what changed in connected inboxes or monitored systems that should alter priorities
-- what the assistant should proactively act on without being re-prompted
+This repo was previously distributed under the codename
+`Lila--Persistent-Operator`. The runtime is now called **Lila Core**; the
+codename is retired. The product built on top of Lila Core is **Lila**, an
+iOS app at [`lila.surf`](https://lila.surf). The runtime itself lives at
+[`lila.sh`](https://lila.sh).
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [`LICENSE`](./LICENSE).
