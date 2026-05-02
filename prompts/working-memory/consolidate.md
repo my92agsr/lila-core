@@ -64,6 +64,11 @@ Selection priorities, in order:
    week.
 3. **Active projects** with real next steps in the input.
 
+A recurring meeting at its usual time is rarely a focus item. Surface it
+only when something about *this* instance is unresolved — a one-off
+agenda, a postponed decision, a new attendee. The standing 9am isn't on
+Lila's mind; the 9am that just became a hiring loop is.
+
 If a capture is too thin to write a meaningful bullet about — "reset
 MacBook", "figure out X", a single phrase with no surrounding context —
 drop it. "No context yet" is not a bullet; it is an admission that the
@@ -78,6 +83,10 @@ on their side or the other person's? List the open items per person.
 Skip this section entirely (empty array) if there is nothing genuinely
 unresolved. A person they exchanged one message with does not have an open
 thread. A person they owe a reply to, or who owes them one, does.
+
+Calendar invitations, mass email, automated notifications, and digests do
+not create threads. A thread requires an exchange where one side genuinely
+owes the other a reply or a decision.
 
 Each item is one sentence, written about the thread, not to the person.
 Lead with what is owed or open — the person's name is the section header
