@@ -22,6 +22,8 @@ export interface RecentActivityItem {
   from?: string
   starts_at?: string
   ends_at?: string | null
+  attendees?: string[]
+  location?: string | null
 }
 
 export interface RetrievedMemory {

@@ -196,6 +196,8 @@ interface EventRow {
   starts_at: string
   ends_at: string | null
   created_at: string
+  attendees: string[] | null
+  location: string | null
 }
 
 async function fetchEvents(
@@ -208,19 +210,27 @@ async function fetchEvents(
   // radar even if it was added a month ago.
   const { data, error } = await client
     .from('events')
-    .select('id, title, starts_at, ends_at, created_at')
+    .select('id, title, starts_at, ends_at, created_at, attendees, location')
     .eq('user_id', userId)
     .or(`created_at.gte.${since},starts_at.gte.${since}`)
     .order('starts_at', { ascending: true })
   if (error) throw error
-  return (data ?? []).map((row: EventRow) => ({
-    record: { table: 'events', id: row.id },
-    kind: 'event',
-    ts: row.starts_at,
-    title: row.title,
-    starts_at: row.starts_at,
-    ends_at: row.ends_at,
-  }))
+  return (data ?? []).map((row: EventRow) => {
+    const item: RecentActivityItem = {
+      record: { table: 'events', id: row.id },
+      kind: 'event',
+      ts: row.starts_at,
+      title: row.title,
+      starts_at: row.starts_at,
+      ends_at: row.ends_at,
+    }
+    // Omit empty/null attendee+location rather than serializing nulls into
+    // the prompt — the model treats absent fields as "not applicable",
+    // which is what we mean here.
+    if (row.attendees && row.attendees.length > 0) item.attendees = row.attendees
+    if (row.location) item.location = row.location
+    return item
+  })
 }
 
 interface WorkingMemoryRow {
