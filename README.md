@@ -1,126 +1,151 @@
 # Lila Core
 
-Working-memory consolidation engine for **Lila** — the iOS app at
-[lila.surf](https://lila.surf). Reads recent activity for a user from
-Supabase, distills it into a structured `working_memory` record using
-Claude, writes it back. The iOS client renders that record on its home
-screen. Open source.
+**The runtime that powers the attention layer.** Memory, model routing,
+scheduling, proactive execution. Open source.
 
-> **`lila.sh`** is this engine. **`lila.surf`** is the consumer iOS app
-> built on top of it. This repo is the runtime; the App Store product is
-> the surface.
+Two layers between a person and the rest of their tools have been missing
+this whole time — the layer that holds the model of what matters, and the
+layer that acts on it without being asked. Lila Core builds both.
 
-## What this does
+For the full thinking behind this project, see [`MANIFESTO.md`](./MANIFESTO.md).
+For a concrete look at what the system produces, see
+[`WORKING_MEMORY_EXAMPLE.md`](./WORKING_MEMORY_EXAMPLE.md). For the
+implementation deep-dive, see [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 
-Once a day (or on demand), for each active user:
+[lila.sh](https://lila.sh) is this engine. [lila.surf](https://lila.surf)
+is the consumer iOS app — the reference surface — built on top of it.
 
-1. Reads recent rows from `public.{captures,tasks,reflections,messages,events}`.
-2. Reads the previous `public.working_memory` row.
-3. Renders a consolidation prompt and asks Claude to produce a structured
-   summary — focus items, people threads, quiet items, an optional greeting
-   context — each bullet carrying receipts back to the underlying records.
-4. Validates the JSON against [`prompts/working-memory/schema.json`](./prompts/working-memory/schema.json).
-5. Writes a new `working_memory` row.
-6. The iOS app renders the latest row on next pull-to-refresh.
+## Two primitives
 
-The voice rules (sparse is honest, no corporate language, time-bound
-items first, every bullet has a receipt) live in
-[`prompts/working-memory/system.md`](./prompts/working-memory/system.md).
-The structure rules live in
-[`prompts/working-memory/consolidate.md`](./prompts/working-memory/consolidate.md).
+```text
+  surfaces            runtime              memory
+  iOS                 consolidator         working_memory
+  web         ───►    model router   ───►  postgres
+  ...                 scheduler            + semantic recall
+                      proactive ops        + source receipts
+                          ▲
+                          │
+                       cron + on-demand
+```
+
+### 1. Memory that actually persists
+
+Salience-scored, source-stamped, nightly-consolidated working memory.
+Not a chat app's bolted-on "memory feature" that forgets what matters
+and remembers what doesn't. A real substrate: classify on capture,
+shape into typed records, distill into long-term facts, consolidate
+into a structured working-memory snapshot, anchor every surfaced
+bullet back to its source rows.
+
+See [`prompts/working-memory/`](./prompts/working-memory/) and
+[`supabase/functions/memory-consolidate/`](./supabase/functions/memory-consolidate/).
+
+### 2. Attention itself
+
+The runtime that uses that memory to notice without being asked.
+Working memory becomes the home screen. Tapping a bullet anchors a
+conversation. A proactive scan runs after every consolidation and
+queues push candidates that get delivered on the user's clock — not
+the engagement-loop's. No streaks. No daily-active manipulation. The
+model is the product.
+
+See [`supabase/functions/conversation-*`](./supabase/functions/),
+[`supabase/functions/memory-proactive-scan/`](./supabase/functions/memory-proactive-scan/),
+and [`supabase/functions/proactive-*`](./supabase/functions/).
 
 ## Repository layout
 
 ```text
 prompts/working-memory/
-  system.md          Voice. Stable. Rarely changes.
-  consolidate.md     Structure. Mustache-style placeholders. Iterate freely.
-  schema.json        JSON Schema for the output. Source of truth.
-  sample-input.json  Synthetic week of activity for prompt iteration.
-  README.md          How to iterate the voice without touching Supabase.
+  system.md              Voice. Stable.
+  consolidate.md         Reference structure prompt (TypeScript copy lives in supabase/functions/_shared/prompts/).
+  schema.json            JSON Schema for the consolidation output.
+  sample-input.json      Synthetic week of activity for prompt iteration.
 
-src/working-memory/
-  types.ts           ConsolidationInput / ConsolidationOutput.
-  consolidation.ts   Render templates, call Claude, validate output.
-  supabase.ts        Read source tables, write working_memory rows.
+supabase/
+  config.toml                          Edge Functions config. Functions deploy via `supabase functions deploy`.
+  functions/_shared/
+    voice.ts                           Single source of truth for Lila's voice; every Sonnet prompt imports it.
+    client.ts                          Anthropic client + model identifiers.
+    scopedSupabase.ts                  RLS-safe wrapper that auto-scopes by user_id.
+    http.ts                            CORS, JSON, error mapping.
+    json.ts                            Robust JSON extraction from model responses.
+    apns.ts                            APNs HTTP/2 helper for the proactive layer.
+    prompts/
+      classify.ts                      Capture type classifier (Haiku).
+      shape_task.ts / shape_note.ts /
+      shape_memory.ts / shape_bookmark.ts
+      extract_tasks.ts                 Pull embedded actions out of long captures.
+      consolidation.ts                 Working-memory consolidation.
+      conversation.ts                  Streaming conversation system prompt.
+      proactive_scan.ts                Generates push candidates after consolidation.
+      morning_brief.ts                 Body of the optional morning brief push.
+  functions/
+    capture-classify/                  POST /capture/classify          (Haiku)
+    capture-shape/                     POST /capture/shape             (Sonnet)
+    capture-distill-memory/            POST /capture/distill-memory
+    capture-extract-tasks/             POST /capture/extract-tasks
+    capture-summarize-url/             POST /capture/summarize-url
+    memory-consolidate/                POST /memory/consolidate
+    memory-refresh/                    POST /memory/refresh            (manual trigger)
+    memory-proactive-scan/             POST /memory/proactive-scan     (chained from consolidate)
+    conversation-send/                 POST /conversation/send         (SSE streaming)
+    conversation-anchor/               POST /conversation/anchor       (seed from a tapped bullet)
+    connectors-calendar-sync/          POST /connectors/calendar/sync  (called from iOS EventKit)
+    push-register/                     POST /push/register             (APNs token)
+    push-test/                         POST /push/test                 (dev only)
+    proactive-deliver/                 Cron, every 5 min — drains proactive_events queue.
+    proactive-morning-brief/           Cron, hourly — generates morning brief candidates.
+    proactive-calendar-imminent/       Cron, every 15 min — scans for events 15-30 min ahead.
 
-scripts/
-  working-memory-consolidate.ts            Iterate against sample-input.json.
-  working-memory-consolidate-supabase.ts   Run for one user against Supabase.
-  working-memory-consolidate-all.ts        Run for every active user.
-
-.github/workflows/
-  consolidate.yml    Nightly cron + manual dispatch.
+src/                                   Legacy CLI scripts (pre-Edge-Functions). Kept for prompt iteration.
+scripts/                               Local CLI helpers — `wm:consolidate*`. Useful for prompt-tuning.
+ADR/                                   Architecture Decision Records — short writeups of non-obvious choices.
 ```
 
-## Run it locally
-
-```bash
-# Iterate prompt voice (no DB):
-ANTHROPIC_API_KEY=… npm run wm:consolidate
-
-# Run for one user (real Supabase data):
-ANTHROPIC_API_KEY=… SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… \
-  npm run wm:consolidate:supabase -- --user you@example.com
-
-# Run for everyone with recent activity:
-ANTHROPIC_API_KEY=… SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… \
-  npm run wm:consolidate:all
-```
-
-The **service-role key** bypasses Row Level Security so the script can
-run on behalf of any user. Never ship it to a client. Never commit it.
-
-## Automatic consolidation
-
-`lila-core` is a pure library; it doesn't run a scheduled job from this
-repo. The deployment that powers `lila.surf` schedules `wm:consolidate:all`
-nightly from a private repo — secrets and operational state stay there
-so this repo can be vendored into other deployments without inheriting
-anyone's credentials.
-
-To run it on your own schedule, point any cron-capable runner
-(GitHub Actions in your own repo, Railway, Fly cron, Supabase scheduled
-edge functions, a `launchd` plist on a Mac) at:
-
-```bash
-ANTHROPIC_API_KEY=… SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… \
-  npm run wm:consolidate:all
-```
+The CLI scripts in `src/` and `scripts/` predate the Edge Functions and
+exist for prompt iteration without round-tripping through the deployed
+runtime. **In production, the Edge Functions are the runtime.** The 1.0
+spec is explicit: no Railway, no long-running Node processes outside of
+Edge Functions.
 
 ## Stack
 
-- Node.js 20+, TypeScript
+- TypeScript / Deno (Edge Functions runtime)
+- Node 20+ for the local CLI scripts
 - `@anthropic-ai/sdk` — Claude calls with prompt caching on the system prompt
-- `@supabase/supabase-js` — read/write Supabase from server-side scripts
+- `@supabase/supabase-js` — RLS-aware reads and writes
+- APNs HTTP/2 for the proactive layer
 
-That's it. No agent runtime, no transports, no embeddings — those lived in
-an earlier Telegram-bot iteration of this repo and have been removed. If
-you need them back for another transport, the git history before the
-"Drop Telegram bot, focus on consolidation engine" commit is the place to
-look.
+## Run a function locally
+
+```bash
+supabase functions serve capture-shape \
+  --env-file ./.env.local \
+  --no-verify-jwt   # local testing only
+```
+
+`./.env.local` should set `ANTHROPIC_API_KEY`, `SUPABASE_URL`,
+`SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`. For the proactive
+worker also set `APNS_TEAM_ID`, `APNS_KEY_ID`, `APNS_PRIVATE_KEY`,
+`APNS_BUNDLE_ID`.
 
 ## Output contract
 
-One JSON object per consolidation pass, written into
-`public.working_memory`. Fields:
+`working_memory` rows are one-row-per-user (jsonb columns + `generated_at`).
+Each bullet carries `source_ids: [{table, id}, …]` — the receipts the
+iOS tap-to-expand sheet resolves against the underlying source rows.
+A reader can always trace a surfaced bullet back to the captures it
+came from. See [`WORKING_MEMORY_EXAMPLE.md`](./WORKING_MEMORY_EXAMPLE.md).
 
-| Field              | Cardinality        | Notes                                     |
-| ------------------ | ------------------ | ----------------------------------------- |
-| `greeting_context` | optional, nullable | Short phrase. Often null.                 |
-| `focus_items`      | 0–4                | The week's actually-load-bearing things.  |
-| `people_threads`   | 0–2 people         | Each with 1–3 unresolved items.           |
-| `quiet_items`      | 0–4                | Captured but stalled ≥10 days, not dead.  |
+## Connectors in 1.0
 
-Every bullet carries `source_ids: [{table, id}, …]` — the receipts the
-iOS tap-to-expand sheet resolves against the source rows.
-
-## Sparse is honest
-
-The single most important rule. If the user had a quiet week, the JSON
-should reflect that — empty arrays, not invented bullets. A half-empty
-home screen is more credible than four padded items.
+**Apple Calendar via EventKit only.** Google Calendar, Gmail, Reminders,
+and the rest are deferred to 1.1+. The Google Calendar scripts in
+`scripts/` and `src/connectors/google-calendar/` are not part of the 1.0
+deployment; they remain for prompt iteration and future re-enablement.
 
 ## License
 
-MIT. See [`LICENSE`](./LICENSE).
+MIT. See [`LICENSE`](./LICENSE). Issues open. PRs may be slow to merge
+while 1.0 is shipping; see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
