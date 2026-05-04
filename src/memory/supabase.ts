@@ -236,20 +236,20 @@ export interface WriteOutputArgs {
   output: ConsolidationOutput
 }
 
-export async function writeWorkingMemory(args: WriteOutputArgs): Promise<{ id: string; generated_at: string }> {
-  const { data, error } = await args.client
+export async function writeWorkingMemory(args: WriteOutputArgs): Promise<{ generated_at: string }> {
+  const generated_at = new Date().toISOString()
+  const { error } = await args.client
     .from('working_memory')
-    .insert({
+    .upsert({
       user_id: args.userId,
       greeting_context: args.output.greeting_context,
       focus_items: args.output.focus_items,
       people_threads: args.output.people_threads,
       quiet_items: args.output.quiet_items,
-    })
-    .select('id, generated_at')
-    .single()
+      generated_at,
+    } as any, { onConflict: 'user_id' } as any)
   if (error) throw error
-  return data as { id: string; generated_at: string }
+  return { generated_at }
 }
 
 export interface ResolveUserArgs {

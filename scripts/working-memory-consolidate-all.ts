@@ -191,7 +191,7 @@ async function consolidateOne(
 
   try {
     const written = await writeWorkingMemory({ client, userId, output: result.output })
-    return { userId, email: profile.email, status: 'wrote', detail: written.id }
+    return { userId, email: profile.email, status: 'wrote', detail: written.generated_at }
   } catch (e) {
     return { userId, email: profile.email, status: 'error', detail: `write: ${(e as Error).message}` }
   }
