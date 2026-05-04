@@ -1,6 +1,6 @@
 // Supabase IO for the working-memory pipeline. Reads recent rows for one
-// user from the source tables (captures, tasks, reflections, messages,
-// events), reads the previous working_memory row, and writes the new one.
+// user from the source tables (captures, tasks, reflections, events),
+// reads the previous working_memory row, and writes the new one.
 //
 // Uses the service-role key so it can read across users on behalf of a
 // scheduled job. RLS still defends user data — this script is just allowed
@@ -37,11 +37,10 @@ export async function loadConsolidationInput(args: LoadInputArgs): Promise<Conso
   since.setUTCDate(since.getUTCDate() - args.lookbackDays)
   const sinceISO = since.toISOString()
 
-  const [captures, tasks, reflections, messages, events, previous] = await Promise.all([
+  const [captures, tasks, reflections, events, previous] = await Promise.all([
     fetchCaptures(args.client, args.userId, sinceISO),
     fetchTasks(args.client, args.userId, sinceISO),
     fetchReflections(args.client, args.userId, sinceISO),
-    fetchMessages(args.client, args.userId, sinceISO),
     fetchEvents(args.client, args.userId, sinceISO),
     fetchPreviousWorkingMemory(args.client, args.userId),
   ])
@@ -50,7 +49,6 @@ export async function loadConsolidationInput(args: LoadInputArgs): Promise<Conso
     ...captures,
     ...tasks,
     ...reflections,
-    ...messages,
     ...events,
   ].sort((a, b) => a.ts.localeCompare(b.ts))
 
@@ -68,7 +66,7 @@ export async function loadConsolidationInput(args: LoadInputArgs): Promise<Conso
 
 interface CaptureRow {
   id: string
-  body: string
+  raw_text: string
   created_at: string
 }
 
@@ -77,13 +75,10 @@ async function fetchCaptures(
   userId: string,
   since: string,
 ): Promise<RecentActivityItem[]> {
-  // Resolved captures are dropped: the user told Lila this is done.
-  // Surfacing them as bullets after that is the "stuck haircut" bug.
   const { data, error } = await client
     .from('captures')
-    .select('id, body, created_at')
+    .select('id, raw_text, created_at')
     .eq('user_id', userId)
-    .is('resolved_at', null)
     .gte('created_at', since)
     .order('created_at', { ascending: true })
   if (error) throw error
@@ -91,14 +86,15 @@ async function fetchCaptures(
     record: { table: 'captures', id: row.id },
     kind: 'capture',
     ts: row.created_at,
-    text: row.body,
+    text: row.raw_text,
   }))
 }
 
 interface TaskRow {
   id: string
   title: string
-  status: string
+  notes: string | null
+  resolved_at: string | null
   due_at: string | null
   created_at: string
   updated_at: string
@@ -112,7 +108,7 @@ async function fetchTasks(
   // A task counts as activity if it was created or last touched in the window.
   const { data, error } = await client
     .from('tasks')
-    .select('id, title, status, due_at, created_at, updated_at')
+    .select('id, title, notes, resolved_at, due_at, created_at, updated_at')
     .eq('user_id', userId)
     .or(`created_at.gte.${since},updated_at.gte.${since}`)
     .order('updated_at', { ascending: true })
@@ -120,8 +116,9 @@ async function fetchTasks(
   return (data ?? []).map((row: TaskRow) => {
     const created = new Date(row.created_at).getTime()
     const updated = new Date(row.updated_at).getTime()
+    const status = row.resolved_at ? 'resolved' : 'open'
     const kind =
-      row.status === 'done' ? 'task_completed'
+      row.resolved_at ? 'task_completed'
       : updated - created > 60_000 ? 'task_updated'
       : 'task_created'
     return {
@@ -129,7 +126,7 @@ async function fetchTasks(
       kind,
       ts: row.updated_at,
       title: row.title,
-      status: row.status,
+      status,
       due: row.due_at,
     }
   })
@@ -158,35 +155,6 @@ async function fetchReflections(
     kind: 'reflection',
     ts: row.created_at,
     text: row.content,
-  }))
-}
-
-interface MessageRow {
-  id: string
-  person: string
-  direction: 'in' | 'out'
-  body: string
-  created_at: string
-}
-
-async function fetchMessages(
-  client: SupabaseClient,
-  userId: string,
-  since: string,
-): Promise<RecentActivityItem[]> {
-  const { data, error } = await client
-    .from('messages')
-    .select('id, person, direction, body, created_at')
-    .eq('user_id', userId)
-    .gte('created_at', since)
-    .order('created_at', { ascending: true })
-  if (error) throw error
-  return (data ?? []).map((row: MessageRow) => ({
-    record: { table: 'messages', id: row.id },
-    kind: row.direction === 'in' ? 'message_received' : 'message_sent',
-    ts: row.created_at,
-    from: row.direction === 'in' ? row.person : undefined,
-    text: row.body,
   }))
 }
 

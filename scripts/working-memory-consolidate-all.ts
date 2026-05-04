@@ -80,7 +80,7 @@ function requireEnv(name: string): string {
 async function listActiveUserIds(client: SupabaseClient, sinceISO: string): Promise<string[]> {
   // One query per source table. The Supabase JS client doesn't expose a
   // distinct-on helper, so we collect all user_ids and dedupe locally.
-  const tables = ['captures', 'tasks', 'reflections', 'messages', 'events'] as const
+  const tables = ['captures', 'tasks', 'reflections', 'events'] as const
   const ids = new Set<string>()
   for (const t of tables) {
     const { data, error } = await client
