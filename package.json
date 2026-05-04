@@ -8,6 +8,8 @@
     "wm:consolidate": "tsx scripts/working-memory-consolidate.ts",
     "wm:consolidate:supabase": "tsx scripts/working-memory-consolidate-supabase.ts",
     "wm:consolidate:all": "tsx scripts/working-memory-consolidate-all.ts",
+    "gcal:sync": "tsx scripts/gcal-sync.ts",
+    "gcal:oauth:mint": "tsx scripts/gcal-oauth-mint.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

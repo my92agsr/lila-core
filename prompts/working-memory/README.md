@@ -67,7 +67,7 @@ is more credible than four padded items.
 ## Where this gets called from
 
 Three scripts share the same consolidation logic in
-`src/working-memory/consolidation.ts`:
+`src/memory/consolidation.ts`:
 
 - **`scripts/working-memory-consolidate.ts`** — runs against an input JSON
   file (default `sample-input.json`). For prompt iteration; does not touch

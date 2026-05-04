@@ -29,13 +29,13 @@ import {
   printRendering,
   render,
   runConsolidation,
-} from '../src/working-memory/consolidation.js'
+} from '../src/memory/consolidation.js'
 import {
   loadConsolidationInput,
   makeServiceClient,
   resolveUserId,
   writeWorkingMemory,
-} from '../src/working-memory/supabase.js'
+} from '../src/memory/supabase.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = resolve(__dirname, '..')

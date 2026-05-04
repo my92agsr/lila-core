@@ -98,12 +98,15 @@ supabase/
     proactive-morning-brief/           Cron, hourly — generates morning brief candidates.
     proactive-calendar-imminent/       Cron, every 15 min — scans for events 15-30 min ahead.
 
-src/                                   Legacy CLI scripts (pre-Edge-Functions). Kept for prompt iteration.
+src/                                   Two primitives, named.
+  memory/                              Persistence, salience, source receipts, consolidation. Local CLI for prompt iteration.
+  attention/                           Noticing, scheduling, proactive surfacing. Runtime lives in supabase/functions/proactive-*; this directory documents the conceptual home.
+  connectors/                          External-system bridges (Google Calendar — deferred to 1.1).
 scripts/                               Local CLI helpers — `wm:consolidate*`. Useful for prompt-tuning.
 ADR/                                   Architecture Decision Records — short writeups of non-obvious choices.
 ```
 
-The CLI scripts in `src/` and `scripts/` predate the Edge Functions and
+The CLI scripts in `src/memory/` and `scripts/` predate the Edge Functions and
 exist for prompt iteration without round-tripping through the deployed
 runtime. **In production, the Edge Functions are the runtime.** The 1.0
 spec is explicit: no Railway, no long-running Node processes outside of
@@ -144,6 +147,15 @@ came from. See [`WORKING_MEMORY_EXAMPLE.md`](./WORKING_MEMORY_EXAMPLE.md).
 and the rest are deferred to 1.1+. The Google Calendar scripts in
 `scripts/` and `src/connectors/google-calendar/` are not part of the 1.0
 deployment; they remain for prompt iteration and future re-enablement.
+
+## Reading order, if you're forking
+
+1. [README](./README.md) — the category claim.
+2. [MANIFESTO](./MANIFESTO.md) — the longer essay it points to.
+3. [ARCHITECTURE](./ARCHITECTURE.md) — runtime, schema, and the prompt split.
+4. [CASE_STUDY](./CASE_STUDY.md) — one synthetic user's first day, end-to-end.
+5. [WORKING_MEMORY_EXAMPLE](./WORKING_MEMORY_EXAMPLE.md) — what the model emits.
+6. [ROADMAP](./ROADMAP.md) — what's on, what's off.
 
 ## License
 

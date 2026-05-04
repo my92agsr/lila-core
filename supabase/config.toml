@@ -1,0 +1,46 @@
+# Lila Core Edge Functions configuration.
+#
+# This config is for `supabase functions` commands run from the lila-core
+# repo. The schema and migrations live alongside the iOS app
+# (../lila-ios/supabase/migrations/) — that project is the source of truth
+# for `supabase db push`. Functions are intentionally split out so the
+# runtime and the iOS app can move at their own cadence.
+
+project_id = "lila-core"
+
+[functions.capture-classify]
+verify_jwt = true
+[functions.capture-shape]
+verify_jwt = true
+[functions.capture-distill-memory]
+verify_jwt = true
+[functions.capture-extract-tasks]
+verify_jwt = true
+[functions.capture-summarize-url]
+verify_jwt = true
+[functions.memory-consolidate]
+verify_jwt = true
+[functions.memory-refresh]
+verify_jwt = true
+[functions.memory-proactive-scan]
+verify_jwt = true
+[functions.conversation-send]
+verify_jwt = true
+[functions.conversation-anchor]
+verify_jwt = true
+[functions.connectors-calendar-sync]
+verify_jwt = true
+[functions.push-register]
+verify_jwt = true
+# push-test is gated by an env-var check inside the function so it can't
+# be called in production even if the JWT verifies.
+[functions.push-test]
+verify_jwt = true
+[functions.account-delete]
+verify_jwt = true
+[functions.proactive-deliver]
+verify_jwt = false  # cron-invoked with service-role key; gated server-side
+[functions.proactive-morning-brief]
+verify_jwt = false
+[functions.proactive-calendar-imminent]
+verify_jwt = false

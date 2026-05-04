@@ -26,8 +26,8 @@ import {
   printRendering,
   render,
   runConsolidation,
-} from '../src/working-memory/consolidation.js'
-import type { ConsolidationInput } from '../src/working-memory/types.js'
+} from '../src/memory/consolidation.js'
+import type { ConsolidationInput } from '../src/memory/types.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = resolve(__dirname, '..')

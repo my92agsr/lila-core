@@ -25,12 +25,12 @@ import { fileURLToPath } from 'url'
 import {
   DEFAULT_MODEL,
   runConsolidation,
-} from '../src/working-memory/consolidation.js'
+} from '../src/memory/consolidation.js'
 import {
   loadConsolidationInput,
   makeServiceClient,
   writeWorkingMemory,
-} from '../src/working-memory/supabase.js'
+} from '../src/memory/supabase.js'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
