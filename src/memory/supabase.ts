@@ -137,7 +137,7 @@ async function fetchTasks(
 
 interface ReflectionRow {
   id: string
-  body: string
+  content: string
   created_at: string
 }
 
@@ -148,7 +148,7 @@ async function fetchReflections(
 ): Promise<RecentActivityItem[]> {
   const { data, error } = await client
     .from('reflections')
-    .select('id, body, created_at')
+    .select('id, content, created_at')
     .eq('user_id', userId)
     .gte('created_at', since)
     .order('created_at', { ascending: true })
@@ -157,7 +157,7 @@ async function fetchReflections(
     record: { table: 'reflections', id: row.id },
     kind: 'reflection',
     ts: row.created_at,
-    text: row.body,
+    text: row.content,
   }))
 }
 
@@ -193,8 +193,8 @@ async function fetchMessages(
 interface EventRow {
   id: string
   title: string
-  starts_at: string
-  ends_at: string | null
+  start_at: string
+  end_at: string | null
   created_at: string
   attendees: string[] | null
   location: string | null
@@ -210,19 +210,19 @@ async function fetchEvents(
   // radar even if it was added a month ago.
   const { data, error } = await client
     .from('events')
-    .select('id, title, starts_at, ends_at, created_at, attendees, location')
+    .select('id, title, start_at, end_at, created_at, attendees, location')
     .eq('user_id', userId)
-    .or(`created_at.gte.${since},starts_at.gte.${since}`)
-    .order('starts_at', { ascending: true })
+    .or(`created_at.gte.${since},start_at.gte.${since}`)
+    .order('start_at', { ascending: true })
   if (error) throw error
   return (data ?? []).map((row: EventRow) => {
     const item: RecentActivityItem = {
       record: { table: 'events', id: row.id },
       kind: 'event',
-      ts: row.starts_at,
+      ts: row.start_at,
       title: row.title,
-      starts_at: row.starts_at,
-      ends_at: row.ends_at,
+      starts_at: row.start_at,
+      ends_at: row.end_at,
     }
     // Omit empty/null attendee+location rather than serializing nulls into
     // the prompt — the model treats absent fields as "not applicable",

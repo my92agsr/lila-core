@@ -16,8 +16,8 @@ export const CONNECTOR = 'google_calendar'
 export interface MappedEvent {
     external_id: string
     title: string
-    starts_at: string
-    ends_at: string | null
+    start_at: string
+    end_at: string | null
     attendees: string[]
     location: string | null
 }
@@ -26,8 +26,8 @@ export interface ExistingEvent {
     id: string
     external_id: string
     title: string
-    starts_at: string
-    ends_at: string | null
+    start_at: string
+    end_at: string | null
     attendees: string[] | null
     location: string | null
 }
@@ -59,8 +59,8 @@ export function mapEvents(events: GoogleEvent[]): { mapped: MappedEvent[]; skipp
         mapped.push({
             external_id: e.id,
             title: e.summary?.trim() || '(no title)',
-            starts_at: starts,
-            ends_at: ends ?? null,
+            start_at: starts,
+            end_at: ends ?? null,
             attendees: mapAttendees(e.attendees),
             location: e.location?.trim() || null,
         })
@@ -106,7 +106,7 @@ export async function reconcile(
     const externalIds = mapped.map((m) => m.external_id)
     const { data: existingRows, error: selectError } = await client
         .from('events')
-        .select('id, external_id, title, starts_at, ends_at, attendees, location')
+        .select('id, external_id, title, start_at, end_at, attendees, location')
         .eq('user_id', userId)
         .eq('connector', CONNECTOR)
         .in('external_id', externalIds)
@@ -129,8 +129,8 @@ export async function reconcile(
         }
         if (
             existing.title === m.title &&
-            normalizeISO(existing.starts_at) === normalizeISO(m.starts_at) &&
-            normalizeISO(existing.ends_at) === normalizeISO(m.ends_at) &&
+            normalizeISO(existing.start_at) === normalizeISO(m.start_at) &&
+            normalizeISO(existing.end_at) === normalizeISO(m.end_at) &&
             sameAttendees(existing.attendees, m.attendees) &&
             (existing.location ?? null) === m.location
         ) {
@@ -141,8 +141,8 @@ export async function reconcile(
             id: existing.id,
             patch: {
                 title: m.title,
-                starts_at: m.starts_at,
-                ends_at: m.ends_at,
+                start_at: m.start_at,
+                end_at: m.end_at,
                 attendees: m.attendees,
                 location: m.location,
             },

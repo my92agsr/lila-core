@@ -19,8 +19,8 @@ describe('mapEvents', () => {
             {
                 external_id: 'abc123',
                 title: 'Coffee with Jess',
-                starts_at: '2026-05-02T15:00:00-07:00',
-                ends_at: '2026-05-02T16:00:00-07:00',
+                start_at: '2026-05-02T15:00:00-07:00',
+                end_at: '2026-05-02T16:00:00-07:00',
                 attendees: [],
                 location: null,
             },
@@ -75,8 +75,8 @@ describe('mapEvents', () => {
         ]
         const { mapped } = mapEvents(events)
         expect(mapped[0]).toMatchObject({
-            starts_at: '2026-05-10T00:00:00Z',
-            ends_at: '2026-05-11T00:00:00Z',
+            start_at: '2026-05-10T00:00:00Z',
+            end_at: '2026-05-11T00:00:00Z',
             attendees: [],
             location: null,
         })
@@ -126,6 +126,6 @@ describe('mapEvents', () => {
             },
         ]
         const { mapped } = mapEvents(events)
-        expect(mapped[0]?.ends_at).toBeNull()
+        expect(mapped[0]?.end_at).toBeNull()
     })
 })

@@ -86,7 +86,7 @@ async function listActiveUserIds(client: SupabaseClient, sinceISO: string): Prom
     const { data, error } = await client
       .from(t)
       .select('user_id')
-      .gte(t === 'events' ? 'starts_at' : 'created_at', sinceISO)
+      .gte(t === 'events' ? 'start_at' : 'created_at', sinceISO)
     if (error) {
       console.warn(`[wm] could not enumerate ${t}: ${error.message}`)
       continue

@@ -120,7 +120,7 @@ async function main() {
     if (args.dryRun) {
         console.log(`[gcal] --dry-run set, not writing`)
         for (const m of mapped.slice(0, 10)) {
-            console.log(`  ${m.starts_at}  ${m.title}`)
+            console.log(`  ${m.start_at}  ${m.title}`)
         }
         if (mapped.length > 10) console.log(`  … and ${mapped.length - 10} more`)
         return
