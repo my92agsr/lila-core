@@ -1,19 +1,40 @@
 // POST /conversation/send
 // Body: { content: string }
-// Returns: text/event-stream — SSE with `event: token` chunks and a
-//          terminal `event: done` carrying the saved assistant message id.
+// Returns: text/event-stream — SSE with the following events:
+//   event: token        data: <text fragment>
+//   event: tool_call    data: { id, name, input }
+//   event: tool_result  data: { id, status, summary }
+//   event: done         data: { id, source_ids, tool_calls }
+//   event: error        data: { message }
 //
 // One conversation per user (DB-enforced via conversations.unique(user_id)).
 // On first call, creates the conversation row. Persists the inbound user
-// message before streaming, persists the final assistant text after the
-// stream completes.
+// message before streaming.
+//
+// Multi-turn tool loop: when the model emits a tool_use, we execute the
+// tool (RLS-scoped), feed the result back as a tool_result content block,
+// and continue streaming. Cap at MAX_TURNS so a model that loops on its
+// own can't run away. The final assistant message persists the full
+// concatenated text plus a tool_calls audit trail.
 
 import { authenticate, scopedSupabase, HttpError } from '../_shared/scopedSupabase.ts'
 import { withErrorHandling } from '../_shared/http.ts'
 import { anthropic, MODELS } from '../_shared/client.ts'
 import { conversationSystem, renderConversationContext } from '../_shared/prompts/conversation.ts'
+import { TOOL_SPECS, executeTool } from '../_shared/tools/index.ts'
 
 interface Body { content: string }
+
+const MAX_TURNS = 5
+
+interface ToolCallLog {
+  id: string
+  name: string
+  input: unknown
+  status: 'ok' | 'error'
+  summary: string
+  data: Record<string, unknown> | null
+}
 
 Deno.serve(withErrorHandling(async (req) => {
   const { userId } = await authenticate(req)
@@ -75,25 +96,21 @@ Deno.serve(withErrorHandling(async (req) => {
   // the rendered context block; subsequent messages are the actual thread.
   // System anchors get folded into the assistant turn that followed them
   // by being included as prior assistant context.
-  const apiMessages: Array<{ role: 'user' | 'assistant'; content: string }> = []
+  type ApiMessage = { role: 'user' | 'assistant'; content: any }
+  const apiMessages: ApiMessage[] = []
   apiMessages.push({ role: 'user', content: contextBlock })
   apiMessages.push({ role: 'assistant', content: 'Got it. I have the current model and recent thread.' })
   for (const m of recent) {
     if (m.role === 'system_anchor') {
       apiMessages.push({ role: 'user', content: `[Anchor] ${m.content}` })
     } else if (m.role === 'user' || m.role === 'assistant') {
-      // Skip the just-inserted user message; it's added at the end below.
       apiMessages.push({ role: m.role, content: m.content })
     }
   }
-  // Replace the last user message (which we just inserted and re-loaded) — no-op if findLast worked.
 
-  // Stream from Anthropic; pipe SSE to the client. We also accumulate the
-  // full text so we can persist the assistant message after the stream
-  // finishes. This is a hand-rolled SSE re-emitter because Edge Functions
-  // need a ReadableStream<Uint8Array> response.
   const encoder = new TextEncoder()
   let assistantBuffer = ''
+  const toolCallsLog: ToolCallLog[] = []
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -102,32 +119,97 @@ Deno.serve(withErrorHandling(async (req) => {
         controller.enqueue(encoder.encode(`event: ${event}\ndata: ${payload}\n\n`))
       }
       try {
-        const response = await anthropic.messages.stream({
-          model: MODELS.sonnet,
-          max_tokens: 1024,
-          system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
-          messages: apiMessages,
-        })
-        for await (const event of response) {
-          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-            assistantBuffer += event.delta.text
-            enqueue('token', event.delta.text)
+        let stopReason: string | null = null
+        for (let turn = 0; turn < MAX_TURNS; turn++) {
+          const response = await anthropic.messages.stream({
+            model: MODELS.sonnet,
+            max_tokens: 1024,
+            system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+            messages: apiMessages,
+            tools: TOOL_SPECS,
+          })
+
+          // Stream text deltas to the client as they arrive. Tool-use
+          // input deltas are not streamed — we wait for the block to
+          // complete and emit a single tool_call with the full input.
+          for await (const event of response) {
+            if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+              assistantBuffer += event.delta.text
+              enqueue('token', event.delta.text)
+            }
           }
+
+          const final = await response.finalMessage()
+          stopReason = final.stop_reason ?? null
+
+          // Append the assistant turn (text + tool_use blocks) verbatim
+          // so the next request sees the same content blocks the model
+          // produced. Anthropic requires the original tool_use blocks
+          // to be present alongside our tool_result reply.
+          apiMessages.push({ role: 'assistant', content: final.content })
+
+          if (final.stop_reason !== 'tool_use') break
+
+          // Execute each tool_use block, surface results to the client,
+          // and append a single user turn with all tool_results.
+          const toolResultBlocks: Array<{
+            type: 'tool_result'
+            tool_use_id: string
+            content: string
+            is_error: boolean
+          }> = []
+          for (const block of final.content) {
+            if (block.type !== 'tool_use') continue
+            enqueue('tool_call', { id: block.id, name: block.name, input: block.input })
+            const result = await executeTool(block.name, block.input, sb)
+            enqueue('tool_result', { id: block.id, status: result.status, summary: result.summary })
+            toolCallsLog.push({
+              id: block.id,
+              name: block.name,
+              input: block.input,
+              status: result.status,
+              summary: result.summary,
+              data: result.data ?? null,
+            })
+            toolResultBlocks.push({
+              type: 'tool_result',
+              tool_use_id: block.id,
+              content: result.summary,
+              is_error: result.status === 'error',
+            })
+          }
+          apiMessages.push({ role: 'user', content: toolResultBlocks })
         }
-        // Persist assistant message. When the user just tapped a focus-item
-        // bullet (the most-recent system_anchor row carries source_ids), we
-        // copy those IDs onto the assistant message so the iOS client can
-        // render tappable receipts under the reply. Spec §5.3: "the
-        // reference is tappable, opens the source." Source attribution
-        // beyond the anchor is a 1.1 problem (semantic retrieval).
+
+        // If the loop hit the turn cap mid-tool-use, the model never got
+        // to summarize its actions. Synthesize a minimal text reply from
+        // tool summaries so the user always sees something.
+        if (!assistantBuffer.trim() && toolCallsLog.length > 0) {
+          assistantBuffer = toolCallsLog
+            .filter((c) => c.status === 'ok')
+            .map((c) => c.summary)
+            .join('. ')
+            .trim()
+        }
+
+        // Source attribution beyond the anchor is a 1.1 problem (semantic
+        // retrieval). When the user just tapped a focus-item bullet, we
+        // copy the anchor's source_ids onto the assistant message so the
+        // iOS client can render tappable receipts under the reply.
         const carriedSourceIds = lastAnchor?.source_ids ?? null
         const { data: saved } = await sb.from('conversation_messages').insert({
           conversation_id: conversationId,
           role: 'assistant',
           content: assistantBuffer,
           source_ids: carriedSourceIds,
+          tool_calls: toolCallsLog.length > 0 ? toolCallsLog : null,
         }).select('id').single()
-        enqueue('done', { id: saved?.id ?? null, source_ids: carriedSourceIds ?? [] })
+        enqueue('done', {
+          id: saved?.id ?? null,
+          source_ids: carriedSourceIds ?? [],
+          tool_calls: toolCallsLog,
+          stop_reason: stopReason,
+        })
       } catch (err: any) {
         enqueue('error', { message: err?.message ?? 'stream failed' })
       } finally {

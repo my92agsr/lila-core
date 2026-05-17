@@ -91,6 +91,8 @@ export function scopedSupabase(userId: string) {
   }
 }
 
+export type ScopedSupabase = ReturnType<typeof scopedSupabase>
+
 export class HttpError extends Error {
   constructor(public status: number, message: string) {
     super(message)
